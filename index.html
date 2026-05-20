@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pick Wise Scanner</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            margin-top: 0;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn-start {
+            background-color: #2c3e50;
+            color: white;
+        }
+
+        .btn-start:hover {
+            background-color: #1a252f;
+        }
+
+        .btn-add {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-add:hover {
+            background-color: #2980b9;
+        }
+
+        /* Layout Grid Utama */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            align-self: flex-start;
+            border-bottom: 2px solid #ecf0f1;
+            width: 100%;
+            padding-bottom: 8px;
+        }
+
+        #webcam-container {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 3px solid #bdc3c7;
+            background-color: #000;
+            width: 200px;
+            height: 200px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        #label-container {
+            width: 100%;
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 15px;
+            color: #2c3e50;
+            letter-spacing: 0.5px;
+        }
+
+        /* Kotak Status Harga Dinamis */
+        #price-container {
+            width: 100%;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            box-sizing: border-box;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        /* Struk / Keranjang Belanja */
+        .shopping-cart {
+            width: 100%;
+            min-height: 180px;
+            background: #fafbfc;
+            border: 1px dashed #bdc3c7;
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-sizing: border-box;
+        }
+
+        #cart-list {
+            padding-left: 20px;
+            margin: 0;
+            font-size: 15px;
+            color: #555;
+        }
+
+        #cart-list li {
+            margin-bottom: 8px;
+            border-bottom: 1px solid #f1f3f5;
+            padding-bottom: 4px;
+        }
+
+        /* Total Harga Section */
+        #total-container {
+            width: 100%;
+            font-size: 26px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 3px double #bdc3c7;
+            text-align: right;
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Pick Wise Scanner</h1>
+        <p>Prototype Sistem Pemindai Kesegaran & Pricing Otomatis Berbasis AI</p>
+    </div>
+
+    <div class="btn-group">
+        <button type="button" class="btn-start" onclick="init()">Start Camera</button>
+        <button type="button" class="btn-add" onclick="addToTotal()">Tambah ke Total</button>
+    </div>
+
+    <div class="main-layout">
+        <div class="card">
+            <div class="card-title">📷 Kamera Scanner</div>
+            <div id="webcam-container"></div>
+            <div id="label-container">Menunggu Kamera...</div>
+            <div id="price-container">Mencari objek...</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🛒 Struk Belanja Digital</div>
+            <div class="shopping-cart">
+                <ol id="cart-list">
+                    </ol>
+            </div>
+            <div id="total-container">Total: Rp 0</div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<script type="text/javascript">
+    const URL = "https://teachablemachine.withgoogle.com/models/21sBU8E9xG/";
+
+    let model, webcam, labelContainer, priceContainer, totalContainer, cartList, maxPredictions;
+    
+    let totalPrice = 0;         
+    let currentPriceValue = 0;   
+    let currentClassName = ""; 
+
+    async function init() {
+        document.getElementById("label-container").innerHTML = "Memuat Model AI...";
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        const flip = true; 
+        webcam = new tmImage.Webcam(200, 200, flip); 
+        await webcam.setup(); 
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
+        priceContainer = document.getElementById("price-container"); 
+        totalContainer = document.getElementById("total-container");
+        cartList = document.getElementById("cart-list"); 
+        
+        labelContainer.innerHTML = "Mencari Objek...";
+    }
+
+    async function loop() {
+        webcam.update(); 
+        await predict();
+        window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        
+        let highestProb = 0;
+        let bestClassName = "";
+
+        for (let i = 0; i < maxPredictions; i++) {
+            const currentProb = prediction[i].probability;
+
+            if (currentProb > highestProb) {
+                highestProb = currentProb;
+                bestClassName = prediction[i].className;
+            }
+        }
+
+        // TAMPILKAN LABEL HANYA JIKA AKURASI > 80%
+        if (highestProb > 0.80) {
+            const percentage = (highestProb * 100).toFixed(0);
+            labelContainer.innerHTML = bestClassName.toUpperCase() + " (" + percentage + "%)";
+            
+            let hargaText = "";
+            currentClassName = bestClassName; 
+
+            switch(bestClassName) {
+                case "empty":
+                    hargaText = "Keranjang Kosong";
+                    currentPriceValue = 0;
+                    currentClassName = ""; 
+                    priceContainer.style.backgroundColor = "#f8f9fa";
+                    priceContainer.style.color = "#7f8c8d"; 
+                    break;
+
+                // APPLES
+                case "fresh apple":
+                case "fresh apples":
+                    hargaText = "Rp 40.000 / Kg (Grade A)";
+                    currentPriceValue = 40000;
+                    priceContainer.style.backgroundColor = "#e8f8f5";
+                    priceContainer.style.color = "#2ecc71";
+                    break;
+                case "rotten apple":
+                case "rotten apples":
+                    hargaText = "Rp 0 - Reject";
+                    currentPriceValue = 0;
+                    priceContainer.style.backgroundColor = "#fdedec";
+                    priceContainer.style.color = "#e74c3c";
+                    break;
+
+                // BANANAS
+                case "fresh banana":
+                case "fresh bananas":
+                    hargaText = "Rp 25.000 / Kg (Segar)";
+                    currentPriceValue = 25000;
+                    priceContainer.style.backgroundColor = "#e8f8f5";
+                    priceContainer.style.color = "#2ecc71";
+                    break;
+                case "rotten banana":
+                case "rotten bananas":
+                    hargaText = "Rp 0 - Reject";
+                    currentPriceValue = 0;
+                    priceContainer.style.backgroundColor = "#fdedec";
+                    priceContainer.style.color = "#e74c3c";
+                    break;
+
+                // ORANGES
+                case "fresh orange":
+                case "fresh oranges":
+                    hargaText = "Rp 30.000 / Kg (Segar)";
+                    currentPriceValue = 30000;
+                    priceContainer.style.backgroundColor = "#e8f8f5";
+                    priceContainer.style.color = "#2ecc71";
+                    break;
+                case "rotten orange":
+                case "rotten oranges":
+                    hargaText = "Rp 0 - Reject";
+                    currentPriceValue = 0;
+                    priceContainer.style.backgroundColor = "#fdedec";
+                    priceContainer.style.color = "#e74c3c";
+                    break;
+
+                // OKRA
+                case "fresh okra":
+                    hargaText = "Rp 20.000 / Kg (Bagus)";
+                    currentPriceValue = 20000;
+                    priceContainer.style.backgroundColor = "#e8f8f5";
+                    priceContainer.style.color = "#2ecc71";
+                    break;
+                case "rotten okra":
+                    hargaText = "Rp 0 - Reject";
+                    currentPriceValue = 0;
+                    priceContainer.style.backgroundColor = "#fdedec";
+                    priceContainer.style.color = "#e74c3c";
+                    break;
+
+                // CUCUMBER
+                case "fresh cucumber":
+                    hargaText = "Rp 15.000 / Kg (Segar)";
+                    currentPriceValue = 15000;
+                    priceContainer.style.backgroundColor = "#e8f8f5";
+                    priceContainer.style.color = "#2ecc71";
+                    break;
+                case "rotten cucumber":
+                    hargaText = "Rp 0 - Reject";
+                    currentPriceValue = 0;
+                    priceContainer.style.backgroundColor = "#fdedec";
+                    priceContainer.style.color = "#e74c3c";
+                    break;
+
+                // POTATO
+                case "fresh potato":
+                case "fresh potatoes":
+                    hargaText = "Rp 18.000 / Kg (Baik)";
+                    currentPriceValue = 18000;
+                    priceContainer.style.backgroundColor = "#e8f8f5";
+                    priceContainer.style.color = "#2ecc71";
+                    break;
+                case "rotten potato":
+                case "rotten potatoes":
+                    hargaText = "Rp 0 - Reject";
+                    currentPriceValue = 0;
+                    priceContainer.style.backgroundColor = "#fdedec";
+                    priceContainer.style.color = "#e74c3c";
+                    break;
+
+                // TOMATO
+                case "fresh tomato":
+                case "fresh tomatoes":
+                    hargaText = "Rp 16.000 / Kg (Padat)";
+                    currentPriceValue = 16000;
+                    priceContainer.style.backgroundColor = "#e8f8f5";
+                    priceContainer.style.color = "#2ecc71";
+                    break;
+                case "rotten tomato":
+                case "rotten tomatoes":
+                    hargaText = "Rp 0 - Reject";
+                    currentPriceValue = 0;
+                    priceContainer.style.backgroundColor = "#fdedec";
+                    priceContainer.style.color = "#e74c3c";
+                    break;
+
+                // MEAT
+                case "fresh meat":
+                    hargaText = "Rp 130.000 / Kg (Premium)";
+                    currentPriceValue = 130000;
+                    priceContainer.style.backgroundColor = "#e8f8f5";
+                    priceContainer.style.color = "#2ecc71";
+                    break;
+                case "rotten meat":
+                case "spoiled meat":
+                    hargaText = "BAHAYA! Amankan Produk!";
+                    currentPriceValue = 0;
+                    priceContainer.style.backgroundColor = "#f9ebee";
+                    priceContainer.style.color = "#c0392b";
+                    break;
+
+                default:
+                    hargaText = "Mendeteksi kesegaran...";
+                    currentPriceValue = 0;
+                    currentClassName = "";
+                    priceContainer.style.backgroundColor = "#f8f9fa";
+                    priceContainer.style.color = "#7f8c8d";
+            }
+
+            priceContainer.innerHTML = hargaText;
+        } else {
+            labelContainer.innerHTML = "Mencari Objek...";
+            priceContainer.innerHTML = "Menunggu objek stabil...";
+            priceContainer.style.backgroundColor = "#f8f9fa";
+            priceContainer.style.color = "#7f8c8d";
+            currentPriceValue = 0; 
+            currentClassName = "";
+        }
+    }
+
+    function addToTotal() {
+        if (currentPriceValue > 0 && currentClassName !== "") {
+            totalPrice += currentPriceValue; 
+            totalContainer.innerHTML = "Total: Rp " + totalPrice.toLocaleString('id-ID');
+            
+            let node = document.createElement("li");
+            node.innerHTML = "<strong style='text-transform: uppercase;'>" + currentClassName + "</strong> — Rp " + currentPriceValue.toLocaleString('id-ID');
+            cartList.appendChild(node);
+
+            totalContainer.style.backgroundColor = "#d4efdf";
+            setTimeout(() => {
+                totalContainer.style.backgroundColor = "transparent";
+            }, 300);
+        } else {
+            alert("Tidak ada barang berbayar yang terdeteksi secara stabil (>80%)!");
+        }
+    }
+</script>
+</body>
+</html>
