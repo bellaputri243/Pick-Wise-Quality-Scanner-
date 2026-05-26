@@ -139,6 +139,21 @@
             transition: all 0.3s ease;
         }
 
+        /* KOTAK BARU: Rekomendasi Ide */
+        #recommendation-container {
+            width: 100%;
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            box-sizing: border-box;
+            background-color: #fdfefe;
+            border: 1px solid #e2e8f0;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #4a5568;
+            transition: all 0.3s ease;
+        }
+
         /* Struk / Keranjang Belanja */
         .shopping-cart {
             width: 100%;
@@ -196,6 +211,7 @@
             <div id="webcam-container"></div>
             <div id="label-container">Menunggu Kamera...</div>
             <div id="price-container">Mencari objek...</div>
+            <div id="recommendation-container">Menunggu analisis produk...</div>
         </div>
 
         <div class="card">
@@ -212,9 +228,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 <script type="text/javascript">
+    // Mengaktifkan kamera belakang HP
     const URL = "https://teachablemachine.withgoogle.com/models/21sBU8E9xG/";
 
-    let model, webcam, labelContainer, priceContainer, totalContainer, cartList, maxPredictions;
+    let model, webcam, labelContainer, priceContainer, recommendationContainer, totalContainer, cartList, maxPredictions;
     
     let totalPrice = 0;         
     let currentPriceValue = 0;   
@@ -230,13 +247,14 @@
 
         const flip = true; 
         webcam = new tmImage.Webcam(200, 200, flip); 
-        await webcam.setup({ facingMode:"environment"}); 
+        await webcam.setup({ facingMode: "environment" }); // Memaksa kamera belakang aktif di smartphone
         await webcam.play();
         window.requestAnimationFrame(loop);
 
         document.getElementById("webcam-container").appendChild(webcam.canvas);
         labelContainer = document.getElementById("label-container");
         priceContainer = document.getElementById("price-container"); 
+        recommendationContainer = document.getElementById("recommendation-container"); // Hubungkan kontainer baru
         totalContainer = document.getElementById("total-container");
         cartList = document.getElementById("cart-list"); 
         
@@ -264,17 +282,18 @@
             }
         }
 
-        // TAMPILKAN LABEL HANYA JIKA AKURASI > 80%
         if (highestProb > 0.80) {
             const percentage = (highestProb * 100).toFixed(0);
             labelContainer.innerHTML = bestClassName.toUpperCase() + " (" + percentage + "%)";
             
             let hargaText = "";
+            let rekomendasiText = ""; // Variabel baru untuk menampung teks ide kegunaan
             currentClassName = bestClassName; 
 
             switch(bestClassName) {
                 case "empty":
                     hargaText = "Keranjang Kosong";
+                    rekomendasiText = "Silakan masukkan buah, sayur, atau daging ke dalam keranjang scanner.";
                     currentPriceValue = 0;
                     currentClassName = ""; 
                     priceContainer.style.backgroundColor = "#f8f9fa";
@@ -285,6 +304,7 @@
                 case "fresh apple":
                 case "fresh apples":
                     hargaText = "Rp 40.000 / Kg (Grade A)";
+                    rekomendasiText = "💡 <strong>Rekomendasi Olahan:</strong> Sangat cocok dikonsumsi langsung, dijadikan campuran salad buah segar, atau diolah menjadi Apple Pie.";
                     currentPriceValue = 40000;
                     priceContainer.style.backgroundColor = "#e8f8f5";
                     priceContainer.style.color = "#2ecc71";
@@ -292,6 +312,7 @@
                 case "rotten apple":
                 case "rotten apples":
                     hargaText = "Rp 0 - Reject";
+                    rekomendasiText = "♻️ <strong>Rekomendasi Alternatif:</strong> Kandungan asamnya sangat baik diolah menjadi pupuk organik cair (POC) tanaman atau cuka apel nonsumsi.";
                     currentPriceValue = 0;
                     priceContainer.style.backgroundColor = "#fdedec";
                     priceContainer.style.color = "#e74c3c";
@@ -301,6 +322,7 @@
                 case "fresh banana":
                 case "fresh bananas":
                     hargaText = "Rp 25.000 / Kg (Segar)";
+                    rekomendasiText = "💡 <strong>Rekomendasi Olahan:</strong> Ideal untuk menu sarapan sehat, bahan baku pisang goreng krispi, atau dibuat bolu pisang (*banana bread*).";
                     currentPriceValue = 25000;
                     priceContainer.style.backgroundColor = "#e8f8f5";
                     priceContainer.style.color = "#2ecc71";
@@ -309,6 +331,7 @@
                 case "rotten bananas":
                     hargaText = "Rp 0 - Reject";
                     currentPriceValue = 0;
+                    rekomendasiText = "♻️ <strong>Rekomendasi Alternatif:</strong> Tekstur lembeknya disukai mikroorganisme. Bagus untuk campuran aktivator pembuatan pupuk kompos.";
                     priceContainer.style.backgroundColor = "#fdedec";
                     priceContainer.style.color = "#e74c3c";
                     break;
@@ -317,6 +340,7 @@
                 case "fresh orange":
                 case "fresh oranges":
                     hargaText = "Rp 30.000 / Kg (Segar)";
+                    rekomendasiText = "💡 <strong>Rekomendasi Olahan:</strong> Kaya Vitamin C. Paling segar diperas jadi es jeruk murni, puding, atau saus jeruk untuk hidangan ayam.";
                     currentPriceValue = 30000;
                     priceContainer.style.backgroundColor = "#e8f8f5";
                     priceContainer.style.color = "#2ecc71";
@@ -324,6 +348,7 @@
                 case "rotten orange":
                 case "rotten oranges":
                     hargaText = "Rp 0 - Reject";
+                    rekomendasiText = "♻️ <strong>Rekomendasi Alternatif:</strong> Kulitnya bisa diekstrak menjadi minyak atsiri pengusir nyamuk alami atau pembersih lantai organik (*Eco-Enzyme*).";
                     currentPriceValue = 0;
                     priceContainer.style.backgroundColor = "#fdedec";
                     priceContainer.style.color = "#e74c3c";
@@ -332,12 +357,14 @@
                 // OKRA
                 case "fresh okra":
                     hargaText = "Rp 20.000 / Kg (Bagus)";
+                    rekomendasiText = "💡 <strong>Rekomendasi Olahan:</strong> Enak ditumis pedas dengan tauco, digoreng tepung (*crispy okra*), atau direbus untuk menu diet sehat.";
                     currentPriceValue = 20000;
                     priceContainer.style.backgroundColor = "#e8f8f5";
                     priceContainer.style.color = "#2ecc71";
                     break;
                 case "rotten okra":
                     hargaText = "Rp 0 - Reject";
+                    rekomendasiText = "♻️ <strong>Rekomendasi Alternatif:</strong> Buang bagian berjamur, sisa serat okranya yang kaya selulosa dapat dihancurkan sebagai pupuk organik penyubur tanah tanah.";
                     currentPriceValue = 0;
                     priceContainer.style.backgroundColor = "#fdedec";
                     priceContainer.style.color = "#e74c3c";
@@ -346,12 +373,14 @@
                 // CUCUMBER
                 case "fresh cucumber":
                     hargaText = "Rp 15.000 / Kg (Segar)";
+                    rekomendasiText = "💡 <strong>Rekomendasi Olahan:</strong> Sangat hidrasi. Cocok untuk lalapan segar, acar kuning, es timun serut khas Aceh, atau masker mata herbal.";
                     currentPriceValue = 15000;
                     priceContainer.style.backgroundColor = "#e8f8f5";
                     priceContainer.style.color = "#2ecc71";
                     break;
                 case "rotten cucumber":
                     hargaText = "Rp 0 - Reject";
+                    rekomendasiText = "♻️ <strong>Rekomendasi Alternatif:</strong> Karena kadar airnya tinggi, timun membusuk sangat baik langsung dicacah untuk pakan budidaya cacing tanah (vermikompos).";
                     currentPriceValue = 0;
                     priceContainer.style.backgroundColor = "#fdedec";
                     priceContainer.style.color = "#e74c3c";
@@ -361,6 +390,7 @@
                 case "fresh potato":
                 case "fresh potatoes":
                     hargaText = "Rp 18.000 / Kg (Baik)";
+                    rekomendasiText = "💡 <strong>Rekomendasi Olahan:</strong> Serbaguna. Sangat pas diolah menjadi kentang goreng (*french fries*), perkedel, donat kentang, atau sup krim kental.";
                     currentPriceValue = 18000;
                     priceContainer.style.backgroundColor = "#e8f8f5";
                     priceContainer.style.color = "#2ecc71";
@@ -368,6 +398,7 @@
                 case "rotten potato":
                 case "rotten potatoes":
                     hargaText = "Rp 0 - Reject";
+                    rekomendasiText = "⚠️ <strong>Peringatan Keamanan:</strong> Kentang membusuk/bertunas mengandung racun solanin. Segera pisahkan dan buang ke tempat limbah padat non-pakan.";
                     currentPriceValue = 0;
                     priceContainer.style.backgroundColor = "#fdedec";
                     priceContainer.style.color = "#e74c3c";
@@ -377,6 +408,7 @@
                 case "fresh tomato":
                 case "fresh tomatoes":
                     hargaText = "Rp 16.000 / Kg (Padat)";
+                    rekomendasiText = "💡 <strong>Rekomendasi Olahan:</strong> Bagus untuk dasar pembuatan sambal tomat, jus kesehatan, saus pasta bolognese rumahan, atau tumisan sup.";
                     currentPriceValue = 16000;
                     priceContainer.style.backgroundColor = "#e8f8f5";
                     priceContainer.style.color = "#2ecc71";
@@ -384,6 +416,7 @@
                 case "rotten tomato":
                 case "rotten tomatoes":
                     hargaText = "Rp 0 - Reject";
+                    rekomendasiText = "♻️ <strong>Rekomendasi Alternatif:</strong> Sangat kaya nutrisi nitrogen. Hancurkan dan kubur di dekat akar tanaman cabai atau tomat lainnya sebagai pupuk alami.";
                     currentPriceValue = 0;
                     priceContainer.style.backgroundColor = "#fdedec";
                     priceContainer.style.color = "#e74c3c";
@@ -392,6 +425,7 @@
                 // MEAT
                 case "fresh meat":
                     hargaText = "Rp 130.000 / Kg (Premium)";
+                    rekomendasiText = "💡 <strong>Rekomendasi Olahan:</strong> Kualitas protein tinggi. Sangat direkomendasikan untuk hidangan utama seperti rendang, steak, daging tumis lada hitam, atau bakso murni.";
                     currentPriceValue = 130000;
                     priceContainer.style.backgroundColor = "#e8f8f5";
                     priceContainer.style.color = "#2ecc71";
@@ -399,6 +433,7 @@
                 case "rotten meat":
                 case "spoiled meat":
                     hargaText = "BAHAYA! Amankan Produk!";
+                    rekomendasiText = "⚠️ <strong>Peringatan Kritis:</strong> Mengandung kontaminasi bakteri tinggi (Salmonella/E.coli). Jangan diolah jadi makanan! Amankan segera menggunakan sarung tangan ke pembuangan limbah medis/akhir.";
                     currentPriceValue = 0;
                     priceContainer.style.backgroundColor = "#f9ebee";
                     priceContainer.style.color = "#c0392b";
@@ -406,6 +441,7 @@
 
                 default:
                     hargaText = "Mendeteksi kesegaran...";
+                    rekomendasiText = "Menunggu analisis produk...";
                     currentPriceValue = 0;
                     currentClassName = "";
                     priceContainer.style.backgroundColor = "#f8f9fa";
@@ -413,9 +449,11 @@
             }
 
             priceContainer.innerHTML = hargaText;
+            recommendationContainer.innerHTML = rekomendasiText; // Masukkan teks rekomendasi ke layar
         } else {
             labelContainer.innerHTML = "Mencari Objek...";
             priceContainer.innerHTML = "Menunggu objek stabil...";
+            recommendationContainer.innerHTML = "Arahkan objek secara stabil di depan kamera untuk melihat rekomendasi kegunaan.";
             priceContainer.style.backgroundColor = "#f8f9fa";
             priceContainer.style.color = "#7f8c8d";
             currentPriceValue = 0; 
